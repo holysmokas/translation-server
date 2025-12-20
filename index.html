@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Translator | Speak Your Language, They Hear Theirs</title>
-    <meta name="description" content="Break language barriers instantly with real-time translation. Connect with anyone in their native language.">
-    
+    <meta name="description"
+        content="Break language barriers instantly with real-time translation. Connect with anyone in their native language.">
+
     <style>
         * {
             margin: 0;
@@ -59,8 +61,15 @@
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-100px) rotate(180deg); }
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-100px) rotate(180deg);
+            }
         }
 
         .container {
@@ -92,13 +101,22 @@
             right: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
             animation: pulse 4s ease-in-out infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.3; }
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.3;
+            }
         }
 
         .header-content {
@@ -161,8 +179,15 @@
         }
 
         @keyframes pulse-dot {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
         }
 
         .status-connected {
@@ -206,8 +231,15 @@
         }
 
         @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
         }
 
         .welcome-screen h2 {
@@ -282,7 +314,8 @@
             font-size: 14px;
         }
 
-        input, select {
+        input,
+        select {
             width: 100%;
             padding: 14px 16px;
             border: 2px solid #e2e8f0;
@@ -292,7 +325,8 @@
             background: white;
         }
 
-        input:focus, select:focus {
+        input:focus,
+        select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -471,6 +505,7 @@
                 opacity: 0;
                 transform: translateY(10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -602,8 +637,15 @@
         }
 
         @keyframes recording-pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
         }
 
         /* Responsive */
@@ -658,7 +700,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         /* Empty State */
@@ -679,6 +723,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Animated Background -->
     <div class="bg-particles" id="particles"></div>
@@ -719,7 +764,8 @@
             <div id="welcomeScreen" class="welcome-screen">
                 <div class="welcome-icon">🌐</div>
                 <h2>Break Language Barriers Instantly</h2>
-                <p>Connect with anyone in the world. Speak in your language, and they hear it in theirs. Real-time translation powered by AI.</p>
+                <p>Connect with anyone in the world. Speak in your language, and they hear it in theirs. Real-time
+                    translation powered by AI.</p>
 
                 <div class="features">
                     <div class="feature-card">
@@ -757,7 +803,8 @@
                     <!-- Room Code Input (Hidden by default) -->
                     <div class="form-group" id="roomCodeGroup" style="display: none;">
                         <label>Room Code</label>
-                        <input type="text" id="roomCodeInput" placeholder="Enter 6-character code" maxlength="6" style="text-transform: uppercase; text-align: center; font-size: 24px; letter-spacing: 4px; font-weight: bold;">
+                        <input type="text" id="roomCodeInput" placeholder="Enter 6-character code" maxlength="6"
+                            style="text-transform: uppercase; text-align: center; font-size: 24px; letter-spacing: 4px; font-weight: bold;">
                     </div>
 
                     <!-- User Info Form -->
@@ -831,8 +878,8 @@
         // ========================================
         // Configuration
         // ========================================
-        const API_BASE = 'http://localhost:8000';  // Change for production
-        const WS_BASE = 'ws://localhost:8000';     // Change for production
+        const API_BASE = 'https://translation-server-production-d487.up.railway.app';  // ✅ CORRECT
+        const WS_BASE = 'wss://translation-server-production-d487.up.railway.app';     // ✅ CORRECT
 
         // ========================================
         // State Management
@@ -1099,7 +1146,7 @@
             welcomeScreen.style.display = 'none';
             chatInterface.classList.add('active');
             roomCodeDisplay.textContent = roomCode;
-            
+
             const lang = LANGUAGES[myLanguage];
             yourLanguageDisplay.textContent = `${lang.name} ${lang.flag}`;
             languageBadge.style.display = 'block';
@@ -1190,4 +1237,5 @@
         createParticles();
     </script>
 </body>
+
 </html>
