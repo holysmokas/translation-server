@@ -2,8 +2,8 @@
 import os
 import base64
 import io
-from groq import Groq
-from google.cloud import translate_v2 as translate
+#from groq import Groq
+#from google.cloud import translate_v2 as translate
 from gtts import gTTS
 import tempfile
 from pathlib import Path
