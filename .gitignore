@@ -1,3 +1,7 @@
+__pycache__/
+*.pyc
 .env
-
 venv/
+*.json
+.DS_Store
+app/
