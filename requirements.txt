@@ -3,4 +3,12 @@ uvicorn[standard]==0.24.0
 websockets==12.0
 pydantic==2.5.0
 python-multipart==0.0.6
+
+# HTTP requests for Azure Translator
+requests==2.31.0
+
+# Text-to-Speech (optional - can be added later)
+gTTS==2.4.0
+
+# Utilities
 python-dotenv==1.0.0

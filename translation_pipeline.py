@@ -1,74 +1,92 @@
-# app/services/translation_pipeline.py - V2 Bidirectional
+# translation_pipeline.py - Azure Translator Ready (V2 Bidirectional)
 import os
 import base64
 import io
-#from groq import Groq
-#from google.cloud import translate_v2 as translate
-from gtts import gTTS
-import tempfile
-from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
+import json
+
+# Azure Translator (will be enabled when you add credentials)
+try:
+    import requests
+    AZURE_AVAILABLE = True
+except ImportError:
+    AZURE_AVAILABLE = False
+    print("⚠️  requests not available - Azure Translator disabled")
+
+# Text-to-Speech (optional for now)
+try:
+    from gtts import gTTS
+    TTS_AVAILABLE = True
+except ImportError:
+    TTS_AVAILABLE = False
+    print("⚠️  gTTS not available - Text-to-speech disabled")
+
 
 class TranslationPipeline:
     """
-    Handles the complete translation pipeline: Speech → Text → Translation → Speech
-    V2: Now supports any-to-any language translation
+    Handles bidirectional translation using Azure Translator
+    V2: Any-to-any language translation
     """
     
     def __init__(self):
-        """Initialize translation services"""
+        """Initialize Azure Translator"""
         
-        # Groq client for Whisper (speech-to-text)
-        groq_api_key = os.getenv("GROQ_API_KEY")
-        if not groq_api_key:
-            raise ValueError("GROQ_API_KEY not found in environment variables")
+        # Azure Translator Configuration
+        self.azure_key = os.getenv("AZURE_TRANSLATOR_KEY")
+        self.azure_endpoint = os.getenv(
+            "AZURE_TRANSLATOR_ENDPOINT",
+            "https://api.cognitive.microsofttranslator.com"
+        )
+        self.azure_region = os.getenv("AZURE_TRANSLATOR_REGION", "global")
         
-        self.groq_client = Groq(api_key=groq_api_key)
+        # Check if Azure is configured
+        self.azure_enabled = bool(self.azure_key and AZURE_AVAILABLE)
         
-        # Google Translate client
-        try:
-            self.translate_client = translate.Client()
-        except Exception as e:
-            raise ValueError(f"Google Translate setup failed: {e}")
+        if not self.azure_enabled:
+            print("⚠️  Azure Translator NOT configured - running in DEMO mode")
+            print("   Set AZURE_TRANSLATOR_KEY to enable translation")
+        else:
+            print("✅ Azure Translator initialized")
+            print(f"   Region: {self.azure_region}")
         
-        # Expanded language code mapping for gTTS (V2)
-        self.tts_language_map = {
-            # Original 6 languages
-            "en": "en",     # English
-            "zh": "zh-CN",  # Chinese (Simplified)
-            "es": "es",     # Spanish
-            "fr": "fr",     # French
-            "fa": "fa",     # Persian (Farsi) - Limited support
-            "ru": "ru",     # Russian
-            
-            # New languages (V2)
-            "de": "de",     # German
-            "ja": "ja",     # Japanese
-            "ko": "ko",     # Korean
-            "pt": "pt",     # Portuguese
-            "it": "it",     # Italian
-            "ar": "ar",     # Arabic
-            "hi": "hi",     # Hindi
-            "tr": "tr",     # Turkish
-            "nl": "nl",     # Dutch
-            "pl": "pl",     # Polish
-            "vi": "vi",     # Vietnamese
-            "th": "th",     # Thai
+        # Supported language codes (Azure supports 100+)
+        self.supported_languages = {
+            "en": "English",
+            "zh-Hans": "Chinese (Simplified)",
+            "es": "Spanish",
+            "fr": "French",
+            "de": "German",
+            "ja": "Japanese",
+            "ko": "Korean",
+            "pt": "Portuguese",
+            "it": "Italian",
+            "ru": "Russian",
+            "ar": "Arabic",
+            "hi": "Hindi",
+            "tr": "Turkish",
+            "nl": "Dutch",
+            "pl": "Polish",
+            "vi": "Vietnamese",
+            "th": "Thai",
+            "fa": "Persian (Farsi)",
+            "da": "Danish",
+            "sv": "Swedish",
+            "no": "Norwegian",
+            "fi": "Finnish",
         }
         
-        # Whisper language codes (same as above for most)
-        self.whisper_language_map = {
+        # Language code mapping (frontend code -> Azure code)
+        self.language_map = {
+            "zh": "zh-Hans",  # Map simplified Chinese
             "en": "en",
-            "zh": "zh",
             "es": "es",
             "fr": "fr",
-            "fa": "fa",
-            "ru": "ru",
             "de": "de",
             "ja": "ja",
             "ko": "ko",
             "pt": "pt",
             "it": "it",
+            "ru": "ru",
             "ar": "ar",
             "hi": "hi",
             "tr": "tr",
@@ -76,220 +94,201 @@ class TranslationPipeline:
             "pl": "pl",
             "vi": "vi",
             "th": "th",
+            "fa": "fa",
+            "da": "da",
+            "sv": "sv",
+            "no": "no",
+            "fi": "fi",
         }
         
-        print("✅ Translation pipeline V2 initialized")
-        print(f"   Supported languages: {len(self.tts_language_map)}")
-        print(f"   Any-to-any translation enabled")
-    
-    async def process_audio_chunk(
-        self, 
-        audio_data: str, 
-        source_lang: str, 
-        target_lang: str
-    ) -> dict:
-        """
-        Process audio chunk through full pipeline
-        
-        Args:
-            audio_data: Base64 encoded audio
-            source_lang: Source language code (e.g., "en", "zh")
-            target_lang: Target language code (e.g., "es", "fr")
-        
-        Returns:
-            dict with original_text, translated_text, translated_audio (base64)
-        """
-        
-        try:
-            # Step 1: Decode base64 audio
-            audio_bytes = base64.b64decode(audio_data)
-            
-            # Step 2: Speech to Text (Whisper via Groq)
-            original_text = await self._transcribe_audio(audio_bytes, source_lang)
-            
-            if not original_text or len(original_text.strip()) == 0:
-                return {
-                    "status": "error",
-                    "error": "No speech detected"
-                }
-            
-            # Step 3: Translate text (if languages are different)
-            if source_lang == target_lang:
-                # Same language - no translation needed
-                translated_text = original_text
-            else:
-                translated_text = self._translate_text(original_text, target_lang, source_lang)
-            
-            # Step 4: Text to Speech
-            translated_audio_base64 = await self._text_to_speech(translated_text, target_lang)
-            
-            return {
-                "status": "success",
-                "original_text": original_text,
-                "translated_text": translated_text,
-                "translated_audio": translated_audio_base64,
-                "source_lang": source_lang,
-                "target_lang": target_lang
-            }
-        
-        except Exception as e:
-            print(f"❌ Error in translation pipeline: {e}")
-            return {
-                "status": "error",
-                "error": str(e),
-                "source_lang": source_lang,
-                "target_lang": target_lang
-            }
+        print(f"✅ Translation pipeline initialized")
+        print(f"   Supported languages: {len(self.supported_languages)}")
+        print(f"   Mode: {'Azure Translation' if self.azure_enabled else 'DEMO (no translation)'}")
     
     async def process_text(
         self, 
         text: str, 
         source_lang: str, 
         target_lang: str
-    ) -> dict:
+    ) -> Dict:
         """
-        Process text-only translation (for testing/debugging)
+        Translate text from source language to target language
         
         Args:
             text: Text to translate
-            source_lang: Source language code
-            target_lang: Target language code
+            source_lang: Source language code (e.g., "en", "zh")
+            target_lang: Target language code (e.g., "es", "fr")
         
         Returns:
-            dict with translated_text and translated_audio
+            dict with status, original_text, translated_text, translated_audio
         """
         
         try:
-            # Step 1: Translate text (if languages are different)
+            # Map language codes to Azure format
+            azure_source = self.language_map.get(source_lang, source_lang)
+            azure_target = self.language_map.get(target_lang, target_lang)
+            
+            # If same language, no translation needed
             if source_lang == target_lang:
-                # Same language - no translation needed
                 translated_text = text
                 print(f"ℹ️  Same language ({source_lang}), no translation needed")
-            else:
-                translated_text = self._translate_text(text, target_lang, source_lang)
+            
+            # If Azure is enabled, translate
+            elif self.azure_enabled:
+                translated_text = await self._translate_with_azure(
+                    text, 
+                    azure_source, 
+                    azure_target
+                )
                 print(f"✅ Translated: {source_lang} → {target_lang}")
                 print(f"   Original: {text}")
                 print(f"   Translated: {translated_text}")
             
-            # Step 2: Text to Speech
-            translated_audio_base64 = await self._text_to_speech(translated_text, target_lang)
+            # Demo mode - just return original text with a note
+            else:
+                translated_text = f"[DEMO MODE - No translation] {text}"
+                print(f"⚠️  Demo mode: returning original text")
+            
+            # Generate TTS audio (optional)
+            audio_base64 = ""
+            if TTS_AVAILABLE:
+                audio_base64 = await self._text_to_speech(translated_text, target_lang)
             
             return {
                 "status": "success",
                 "original_text": text,
                 "translated_text": translated_text,
-                "translated_audio": translated_audio_base64,
+                "translated_audio": audio_base64,
                 "source_lang": source_lang,
                 "target_lang": target_lang
             }
         
         except Exception as e:
-            print(f"❌ Error in text translation: {e}")
+            print(f"❌ Error in translation: {e}")
             return {
                 "status": "error",
                 "error": str(e),
+                "original_text": text,
+                "translated_text": text,  # Return original on error
+                "translated_audio": "",
                 "source_lang": source_lang,
                 "target_lang": target_lang
             }
     
-    async def _transcribe_audio(self, audio_bytes: bytes, language: str) -> str:
-        """
-        Transcribe audio to text using Groq Whisper
-        
-        Args:
-            audio_bytes: Raw audio bytes
-            language: Language code
-        
-        Returns:
-            Transcribed text
-        """
-        
-        # Create temporary file for audio
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-            temp_audio.write(audio_bytes)
-            temp_audio_path = temp_audio.name
-        
-        try:
-            # Map language code to Whisper format
-            whisper_lang = self.whisper_language_map.get(language, language)
-            
-            with open(temp_audio_path, "rb") as audio_file:
-                # Transcribe using Groq Whisper
-                transcription = self.groq_client.audio.transcriptions.create(
-                    file=audio_file,
-                    model="whisper-large-v3",
-                    language=whisper_lang if whisper_lang != "auto" else None,
-                    response_format="text",
-                    temperature=0.0
-                )
-            
-            # Clean up temp file
-            Path(temp_audio_path).unlink()
-            
-            return transcription.strip()
-        
-        except Exception as e:
-            # Clean up temp file
-            Path(temp_audio_path).unlink(missing_ok=True)
-            print(f"❌ Transcription error: {e}")
-            raise e
-    
-    def _translate_text(
+    async def _translate_with_azure(
         self, 
         text: str, 
-        target_lang: str, 
-        source_lang: str = "auto"
+        source_lang: str, 
+        target_lang: str
     ) -> str:
         """
-        Translate text using Google Translate (supports 133+ languages)
+        Translate text using Azure Translator API
         
         Args:
             text: Text to translate
-            target_lang: Target language code
-            source_lang: Source language code (or "auto" to detect)
+            source_lang: Azure source language code
+            target_lang: Azure target language code
         
         Returns:
             Translated text
         """
         
+        if not self.azure_enabled:
+            return text
+        
         try:
-            if source_lang == "auto":
-                source_lang = None
+            # Azure Translator API endpoint
+            path = '/translate'
+            constructed_url = self.azure_endpoint + path
             
-            # Google Translate API call
-            result = self.translate_client.translate(
-                text,
-                target_language=target_lang,
-                source_language=source_lang
+            # Request parameters
+            params = {
+                'api-version': '3.0',
+                'from': source_lang,
+                'to': target_lang
+            }
+            
+            # Request headers
+            headers = {
+                'Ocp-Apim-Subscription-Key': self.azure_key,
+                'Ocp-Apim-Subscription-Region': self.azure_region,
+                'Content-type': 'application/json',
+            }
+            
+            # Request body
+            body = [{
+                'text': text
+            }]
+            
+            # Make request
+            response = requests.post(
+                constructed_url, 
+                params=params, 
+                headers=headers, 
+                json=body,
+                timeout=10
             )
             
-            return result['translatedText']
+            response.raise_for_status()
+            
+            # Parse response
+            result = response.json()
+            translated_text = result[0]['translations'][0]['text']
+            
+            return translated_text
         
-        except Exception as e:
-            print(f"❌ Translation error ({source_lang} → {target_lang}): {e}")
-            # Return original text if translation fails
+        except requests.exceptions.Timeout:
+            print(f"❌ Azure Translator timeout")
+            return text
+        
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Azure Translator error: {e}")
+            return text
+        
+        except (KeyError, IndexError) as e:
+            print(f"❌ Error parsing Azure response: {e}")
             return text
     
     async def _text_to_speech(self, text: str, language: str) -> str:
         """
-        Convert text to speech and return as base64
+        Convert text to speech using gTTS (optional)
         
         Args:
             text: Text to convert
             language: Language code
         
         Returns:
-            Base64 encoded audio
+            Base64 encoded audio (or empty string if TTS unavailable)
         """
         
+        if not TTS_AVAILABLE:
+            return ""
+        
         try:
-            # Map language code to gTTS format
-            tts_lang = self.tts_language_map.get(language, "en")
+            # Map to gTTS language code
+            tts_lang_map = {
+                "zh": "zh-CN",
+                "zh-Hans": "zh-CN",
+                "en": "en",
+                "es": "es",
+                "fr": "fr",
+                "de": "de",
+                "ja": "ja",
+                "ko": "ko",
+                "pt": "pt",
+                "it": "it",
+                "ru": "ru",
+                "ar": "ar",
+                "hi": "hi",
+                "tr": "tr",
+                "nl": "nl",
+                "pl": "pl",
+                "vi": "vi",
+                "th": "th",
+                "fa": "fa",
+            }
             
-            # Check if language is supported by gTTS
-            if language not in self.tts_language_map:
-                print(f"⚠️  Language {language} not supported by gTTS, using English")
-                tts_lang = "en"
+            tts_lang = tts_lang_map.get(language, "en")
             
             # Generate speech
             tts = gTTS(text=text, lang=tts_lang, slow=False)
@@ -305,18 +304,18 @@ class TranslationPipeline:
             return audio_base64
         
         except Exception as e:
-            print(f"❌ TTS error for language {language}: {e}")
-            # Return empty audio on error
+            print(f"❌ TTS error: {e}")
             return ""
     
-    def get_supported_languages(self) -> dict:
+    def get_supported_languages(self) -> Dict:
         """Get list of supported languages"""
         return {
             "mode": "bidirectional",
-            "total_languages": len(self.tts_language_map),
-            "languages": list(self.tts_language_map.keys()),
-            "tts_support": self.tts_language_map,
-            "whisper_support": self.whisper_language_map
+            "azure_enabled": self.azure_enabled,
+            "tts_enabled": TTS_AVAILABLE,
+            "total_languages": len(self.supported_languages),
+            "languages": list(self.language_map.keys()),
+            "language_names": self.supported_languages
         }
     
     def validate_language(self, language: str) -> bool:
@@ -329,9 +328,9 @@ class TranslationPipeline:
         Returns:
             True if supported, False otherwise
         """
-        return language in self.tts_language_map
+        return language in self.language_map
     
-    def get_language_info(self, language: str) -> Optional[dict]:
+    def get_language_info(self, language: str) -> Optional[Dict]:
         """
         Get information about a specific language
         
@@ -344,9 +343,36 @@ class TranslationPipeline:
         if not self.validate_language(language):
             return None
         
+        azure_code = self.language_map.get(language, language)
+        
         return {
             "code": language,
-            "tts_code": self.tts_language_map.get(language),
-            "whisper_code": self.whisper_language_map.get(language),
+            "azure_code": azure_code,
+            "name": self.supported_languages.get(azure_code, "Unknown"),
             "supported": True
+        }
+    
+    async def process_audio_chunk(
+        self, 
+        audio_data: str, 
+        source_lang: str, 
+        target_lang: str
+    ) -> Dict:
+        """
+        Process audio chunk (placeholder for future voice support)
+        
+        Args:
+            audio_data: Base64 encoded audio
+            source_lang: Source language code
+            target_lang: Target language code
+        
+        Returns:
+            dict with status and message
+        """
+        
+        return {
+            "status": "error",
+            "error": "Audio processing not yet implemented. Use text chat for now.",
+            "source_lang": source_lang,
+            "target_lang": target_lang
         }
