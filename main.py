@@ -226,7 +226,18 @@ async def join_room(
     # Get video URL (reconstruct from room code)
     video_url = None
     if DAILY_API_KEY:
-        video_url = f"https://translator-{room_code.lower()}.daily.co"
+        try:
+            headers = {"Authorization": f"Bearer {DAILY_API_KEY}"}
+            room_name = f"translator-{room_code.lower()}"
+            response = requests.get(
+            f"{DAILY_API_BASE}/rooms/{room_name}",
+            headers=headers,
+            timeout=10
+            )
+            if response.status_code == 200:
+                video_url = response.json().get("url")
+        except:
+            pass
     
     return JoinRoomResponse(
         room_code=room_code.upper(),
