@@ -402,7 +402,7 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str, user_id: str)
         # Remove participant from room
         if user_name:
             room_manager.remove_participant(room_code, user_id)
-            
+        
             # Notify others
             await room_manager.broadcast_to_room(
                 room_code=room_code,
@@ -410,7 +410,10 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str, user_id: str)
                     "type": "system",
                     "message": f"{user_name} left the conversation"
                 }
-            )
+        )
+        
+        # Don't delete Daily.co room immediately - let it stay for others to join
+        # Daily.co rooms auto-expire after 10 minutes of inactivity
             
             # If room is empty, delete Daily.co room
             if len(room.participants) == 0:
