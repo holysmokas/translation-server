@@ -1,3 +1,4 @@
+<!--index.html-->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -432,6 +433,55 @@
             display: block;
         }
 
+        /* Video Container */
+        .video-container {
+            background: #000;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            height: 500px;
+        }
+
+        .video-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: var(--radius);
+        }
+
+        .video-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .video-placeholder-content {
+            max-width: 400px;
+        }
+
+        .video-placeholder-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+            opacity: 0.7;
+        }
+
+        .video-placeholder h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .video-placeholder p {
+            font-size: 14px;
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+
         .room-banner {
             background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
             padding: 24px;
@@ -852,6 +902,17 @@
                     <div class="room-share-hint">Share this code to invite others</div>
                 </div>
 
+                <!-- Video Container -->
+                <div class="video-container" id="videoContainer">
+                    <div class="video-placeholder">
+                        <div class="video-placeholder-content">
+                            <div class="video-placeholder-icon">📹</div>
+                            <h3>Video Chat</h3>
+                            <p id="videoStatus">Connecting to video...</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Messages -->
                 <div class="messages-container" id="messagesContainer">
                     <div class="empty-state">
@@ -878,8 +939,8 @@
         // ========================================
         // Configuration
         // ========================================
-        const API_BASE = 'https://translation-server-production-d487.up.railway.app';  // ✅ CORRECT
-        const WS_BASE = 'wss://translation-server-production-d487.up.railway.app';     // ✅ CORRECT
+        const API_BASE = 'https://translation-server-production-d487.up.railway.app';
+        const WS_BASE = 'wss://translation-server-production-d487.up.railway.app';
 
         // ========================================
         // State Management
@@ -890,6 +951,7 @@
         let myLanguage = 'en';
         let myName = 'Guest';
         let currentAction = 'create';
+        let videoUrl = null;
 
         // Language mapping
         const LANGUAGES = {
@@ -935,6 +997,8 @@
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const voiceBtn = document.getElementById('voiceBtn');
+        const videoContainer = document.getElementById('videoContainer');
+        const videoStatus = document.getElementById('videoStatus');
 
         // ========================================
         // Background Particles
@@ -1093,6 +1157,11 @@
                     if (data.your_language) {
                         myLanguage = data.your_language;
                     }
+                    // Update video URL if provided
+                    if (data.video_url && !videoUrl) {
+                        videoUrl = data.video_url;
+                        loadVideo();
+                    }
                     break;
 
                 case 'translation':
@@ -1157,6 +1226,27 @@
 
             // Clear empty state
             messagesContainer.innerHTML = '';
+
+            // Load video
+            loadVideo();
+        }
+
+        function loadVideo() {
+            if (!videoUrl) {
+                videoStatus.textContent = 'Video not available - DAILY_API_KEY not configured';
+                return;
+            }
+
+            // Create iframe for Daily.co
+            videoContainer.innerHTML = `
+                <iframe 
+                    src="${videoUrl}?t=${Date.now()}"
+                    allow="camera; microphone; fullscreen; display-capture; autoplay"
+                    allowfullscreen
+                ></iframe>
+            `;
+
+            console.log('✅ Loaded video:', videoUrl);
         }
 
         function addSystemMessage(text) {
