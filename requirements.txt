@@ -4,7 +4,7 @@ websockets==12.0
 pydantic==2.5.0
 python-multipart==0.0.6
 
-# HTTP requests for Azure Translator
+# HTTP requests for Azure Translator and Daily.co
 requests==2.31.0
 
 # Text-to-Speech (optional - can be added later)
