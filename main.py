@@ -199,11 +199,6 @@ async def join_room(
 ):
     """
     Join an existing room with video support
-    
-    Args:
-        room_code: 6-character room code
-        user_name: User's display name
-        language: User's native language code (e.g., "en", "zh")
     """
     # Validate room exists
     room = room_manager.get_room(room_code.upper())
@@ -223,21 +218,22 @@ async def join_room(
     import string
     user_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
     
-    # Get video URL (reconstruct from room code)
+    # Get REAL video URL from Daily.co API
     video_url = None
     if DAILY_API_KEY:
         try:
             headers = {"Authorization": f"Bearer {DAILY_API_KEY}"}
             room_name = f"translator-{room_code.lower()}"
             response = requests.get(
-            f"{DAILY_API_BASE}/rooms/{room_name}",
-            headers=headers,
-            timeout=10
+                f"{DAILY_API_BASE}/rooms/{room_name}",
+                headers=headers,
+                timeout=10
             )
             if response.status_code == 200:
                 video_url = response.json().get("url")
-        except:
-            pass
+                print(f"✅ Got real video URL: {video_url}")
+        except Exception as e:
+            print(f"❌ Error fetching video URL: {e}")
     
     return JoinRoomResponse(
         room_code=room_code.upper(),
