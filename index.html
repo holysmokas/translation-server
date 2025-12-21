@@ -1237,16 +1237,27 @@
                 return;
             }
 
-            // Create iframe for Daily.co
-            videoContainer.innerHTML = `
-                <iframe 
-                    src="${videoUrl}?t=${Date.now()}"
-                    allow="camera; microphone; fullscreen; display-capture; autoplay"
-                    allowfullscreen
-                ></iframe>
-            `;
+            // FIX: Convert the wrong URL format to the correct one
+            let correctUrl = videoUrl;
 
-            console.log('✅ Loaded video:', videoUrl);
+            // If URL is in wrong format (translator-xxx.daily.co)
+            if (videoUrl.match(/https:\/\/translator-[a-z0-9]+\.daily\.co/i)) {
+                // Extract room code (e.g., "translator-vv7jls")
+                const roomCode = videoUrl.match(/translator-[a-z0-9]+/i)[0];
+                // Convert to correct format
+                correctUrl = `https://itranslate.daily.co/${roomCode}`;
+                console.log(`🔧 Fixed video URL: ${videoUrl} → ${correctUrl}`);
+            }
+
+            console.log('✅ Loading video:', correctUrl);
+
+            videoContainer.innerHTML = `
+        <iframe 
+            src="${correctUrl}"
+            allow="camera; microphone; fullscreen; display-capture; autoplay"
+            allowfullscreen
+        ></iframe>
+    `;
         }
 
         function addSystemMessage(text) {
