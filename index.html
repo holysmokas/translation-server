@@ -1,4 +1,3 @@
-<!--index.html-->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -516,13 +515,13 @@
 
         /* Messages */
         .messages-container {
-            height: 450px;
+            height: 300px;
             overflow-y: auto;
             background: #f8fafc;
             border: 2px solid #e2e8f0;
             border-radius: var(--radius);
             padding: 20px;
-            margin-bottom: 20px;
+            margin-top: 20px;
             scroll-behavior: smooth;
         }
 
@@ -913,15 +912,7 @@
                     </div>
                 </div>
 
-                <!-- Messages -->
-                <div class="messages-container" id="messagesContainer">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">💬</div>
-                        <p>No messages yet. Start the conversation!</p>
-                    </div>
-                </div>
-
-                <!-- Input Section -->
+                <!-- Input Section (MOVED HERE - right below video) -->
                 <div class="input-section">
                     <input type="text" id="messageInput" placeholder="Type your message in your language...">
                     <button class="btn btn-primary" id="sendBtn">
@@ -930,6 +921,14 @@
                     <button class="btn btn-icon btn-voice" id="voiceBtn" title="Voice message (coming soon)">
                         🎤
                     </button>
+                </div>
+
+                <!-- Messages (NOW BELOW input) -->
+                <div class="messages-container" id="messagesContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">💬</div>
+                        <p>No messages yet. Start the conversation!</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1237,27 +1236,16 @@
                 return;
             }
 
-            // FIX: Convert the wrong URL format to the correct one
-            let correctUrl = videoUrl;
-
-            // If URL is in wrong format (translator-xxx.daily.co)
-            if (videoUrl.match(/https:\/\/translator-[a-z0-9]+\.daily\.co/i)) {
-                // Extract room code (e.g., "translator-vv7jls")
-                const roomCode = videoUrl.match(/translator-[a-z0-9]+/i)[0];
-                // Convert to correct format
-                correctUrl = `https://itranslate.daily.co/${roomCode}`;
-                console.log(`🔧 Fixed video URL: ${videoUrl} → ${correctUrl}`);
-            }
-
-            console.log('✅ Loading video:', correctUrl);
-
+            // Create iframe for Daily.co
             videoContainer.innerHTML = `
-        <iframe 
-            src="${correctUrl}"
-            allow="camera; microphone; fullscreen; display-capture; autoplay"
-            allowfullscreen
-        ></iframe>
-    `;
+                <iframe 
+                    src="${videoUrl}?t=${Date.now()}"
+                    allow="camera; microphone; fullscreen; display-capture; autoplay"
+                    allowfullscreen
+                ></iframe>
+            `;
+
+            console.log('✅ Loaded video:', videoUrl);
         }
 
         function addSystemMessage(text) {
