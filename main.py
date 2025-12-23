@@ -10,6 +10,7 @@ import requests
 # Import your services
 from room_manager import RoomManager
 from translation_pipeline import TranslationPipeline
+from auth_service import AuthService
 
 # ========================================
 # FastAPI App Initialization
@@ -334,7 +335,7 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str, user_id: str)
                     if response.status_code == 200:
                         video_url = response.json().get("url")
                         print(f"✅ Got video URL for WebSocket: {video_url}")
-                        
+
                 except Exception as e:
                     print(f"❌ Error fetching video URL in WebSocket: {e}")
             

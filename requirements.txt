@@ -10,5 +10,11 @@ requests==2.31.0
 # Text-to-Speech (optional - can be added later)
 gTTS==2.4.0
 
+# Supabase for authentication
+supabase==2.3.4
+
+# JWT for token handling
+pyjwt==2.8.0
+
 # Utilities
 python-dotenv==1.0.0
