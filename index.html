@@ -513,6 +513,32 @@
             color: #6366f1;
         }
 
+        .disconnect-btn {
+            margin-top: 16px;
+            background: var(--danger);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .disconnect-btn:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .disconnect-btn:active {
+            transform: translateY(0);
+        }
+
         /* Messages */
         .messages-container {
             height: 300px;
@@ -899,6 +925,9 @@
                     <div class="room-code-label">Room Code</div>
                     <div class="room-code-display" id="roomCodeDisplay">------</div>
                     <div class="room-share-hint">Share this code to invite others</div>
+                    <button class="disconnect-btn" id="disconnectBtn">
+                        🚪 Disconnect
+                    </button>
                 </div>
 
                 <!-- Video Container -->
@@ -998,6 +1027,7 @@
         const voiceBtn = document.getElementById('voiceBtn');
         const videoContainer = document.getElementById('videoContainer');
         const videoStatus = document.getElementById('videoStatus');
+        const disconnectBtn = document.getElementById('disconnectBtn');
 
         // ========================================
         // Background Particles
@@ -1049,6 +1079,12 @@
             alert('🎤 Voice recording coming soon!\n\nFor now, use text chat to experience real-time translation.');
         });
 
+        disconnectBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to disconnect from this room?')) {
+                disconnectFromRoom();
+            }
+        });
+
         // ========================================
         // Core Functions
         // ========================================
@@ -1082,7 +1118,6 @@
                 const data = await response.json();
                 roomCode = data.room_code;
                 userId = generateUserId();
-                videoUrl = data.video_url;  // ← ADD THIS LINE
 
                 connectWebSocket();
             } catch (error) {
@@ -1319,6 +1354,34 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function disconnectFromRoom() {
+            // Close WebSocket connection
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            // Reset state
+            roomCode = null;
+            userId = null;
+            videoUrl = null;
+
+            // Hide chat interface
+            chatInterface.classList.remove('active');
+            welcomeScreen.style.display = 'block';
+
+            // Reset status
+            updateConnectionStatus(false);
+            languageBadge.style.display = 'none';
+            participantCount.style.display = 'none';
+
+            // Reset form
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<span>Start Conversation</span>';
+
+            console.log('👋 Disconnected from room');
         }
 
         // ========================================
