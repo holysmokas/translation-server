@@ -11,6 +11,7 @@ import requests
 from room_manager import RoomManager
 from translation_pipeline import TranslationPipeline
 from auth_service import AuthService
+from rate_limiter import RateLimiter
 
 # ========================================
 # FastAPI App Initialization
