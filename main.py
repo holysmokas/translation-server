@@ -323,7 +323,20 @@ async def websocket_endpoint(websocket: WebSocket, room_code: str, user_id: str)
             # Get video URL
             video_url = None
             if DAILY_API_KEY:
-                video_url = f"https://translator-{room_code.lower()}.daily.co"
+                try:
+                    headers = {"Authorization": f"Bearer {DAILY_API_KEY}"}
+                    room_name = f"translator-{room_code.lower()}"
+                    response = requests.get(
+                    f"{DAILY_API_BASE}/rooms/{room_name}",
+                    headers=headers,
+                    timeout=10
+        )
+                    if response.status_code == 200:
+                        video_url = response.json().get("url")
+                        print(f"✅ Got video URL for WebSocket: {video_url}")
+                        
+                except Exception as e:
+                    print(f"❌ Error fetching video URL in WebSocket: {e}")
             
             # Send welcome message to user
             await websocket.send_json({
