@@ -82,6 +82,49 @@ class JoinRoomResponse(BaseModel):
     message: str
     video_url: Optional[str] = None
 
+# Auth Models
+class SignUpRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+class SignInRequest(BaseModel):
+    email: str
+    password: str
+
+class ResetPasswordRequest(BaseModel):
+    email: str
+
+# Initialize auth service
+auth_service = AuthService()
+
+# Auth Endpoints
+@app.post("/api/auth/signup")
+async def signup(request: SignUpRequest):
+    result = await auth_service.sign_up(
+        email=request.email,
+        password=request.password,
+        name=request.name
+    )
+    if result["status"] == "error":
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+@app.post("/api/auth/signin")
+async def signin(request: SignInRequest):
+    result = await auth_service.sign_in(
+        email=request.email,
+        password=request.password
+    )
+    if result["status"] == "error":
+        raise HTTPException(status_code=401, detail=result["error"])
+    return result
+
+@app.post("/api/auth/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    result = await auth_service.reset_password_request(request.email)
+    return result
+
 # ========================================
 # Daily.co Helper Functions
 # ========================================
