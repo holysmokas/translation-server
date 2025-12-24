@@ -1,7 +1,18 @@
-__pycache__/
-*.pyc
-.env
+# Virtual Environment
 venv/
-*.json
+.venv/
+env/
+
+# Secrets & Config
+.env
+*.pyc
+__pycache__/
+
+# OS files
 .DS_Store
-app/
+Thumbs.db
+
+# FastAPI / IDE
+.vscode/
+.idea/
+*.log

@@ -1,6 +1,9 @@
 # main.py - Real-Time Translation Backend with Daily.co Video
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request # Added Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles # Added for CSS
+from fastapi.templating import Jinja2Templates # Added for HTML
+from fastapi.responses import HTMLResponse # Added for response type
 from pydantic import BaseModel
 import os
 from typing import Optional
@@ -22,6 +25,13 @@ app = FastAPI(
     version="2.1"
 )
 
+# 1. Mount the static folder (where your style.css lives)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 2. Setup Template Engine (looks in your root folder for app.html)
+templates = Jinja2Templates(directory=".")
+
+
 # ========================================
 # CORS Configuration
 # ========================================
@@ -39,6 +49,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ========================================
+# Route to serve the HTML file
+# ========================================
+@app.get("/", response_class=HTMLResponse)
+async def get_index(request: Request):
+    return templates.TemplateResponse("app.html", {"request": request})
 
 # ========================================
 # Initialize Services
