@@ -43,6 +43,7 @@ app.add_middleware(
         "http://127.0.0.1:8000",
         "https://*.github.io",
         "https://railway.app",
+        "https://holysmokas.github.io",
         "*"
     ],
     allow_credentials=True,
